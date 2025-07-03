@@ -1,0 +1,65 @@
+import { Document, model, Schema, Types } from "mongoose";
+
+export interface IUser extends Document {
+    _id: Types.ObjectId;
+    name: string;
+    username: string;
+    password: string;
+    email: string;// eliminar 
+    phone: string;
+    status: boolean;
+    createDate: Date;
+    delateDate: Date;
+    roles: Types.ObjectId[]; // Referencia hacia varios Roles
+}
+
+const userSchema = new Schema<IUser>({
+    name: {
+        type: String,
+        required: true,
+    },
+    id: {
+        type: String,
+    },
+    username: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    password: {
+        type: String,
+        required: true,
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    createDate: {
+        type: Date,
+        default: Date.now,
+    },
+    roles: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: "Rol",
+            required: true,
+        },
+    ],
+    phone: {
+        type: String,
+        required: true,
+    },
+    status: {
+        type: Boolean,
+        required: true,
+        default: true,
+    },
+    delateDate: {
+        type: Date,
+    },
+});
+
+// Exportamos el modelo
+export const User = model<IUser>("User", userSchema);
+
