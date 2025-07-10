@@ -6,9 +6,6 @@ import { crearAlerta, getHistorialAlertas } from "../controllers/alerta_controll
 
 const router = Router();
 
-// Alertas  
-router.post("/alertas", crearAlerta);
-router.get("/alertas", getHistorialAlertas);
 
 //  Auth  
 router.post("/login", login);
@@ -29,6 +26,11 @@ router.get("/horarios", getHorarios);
 router.get("/horarios/:id", getHorarioById);     
 router.post("/horarios", createHorario);        
 router.put("/horarios/:id", updateHorario);      
-router.delete("/horarios/:id", deleteHorario);   
+router.delete("/horarios/:id", deleteHorario); 
+
+// Alertas  
+router.post("/alertas", crearAlerta);
+router.get("/alertas", getHistorialAlertas);
+
 
 export default router;

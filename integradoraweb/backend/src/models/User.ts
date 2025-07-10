@@ -3,9 +3,8 @@ import { Document, model, Schema, Types } from "mongoose";
 export interface IUser extends Document {
     _id: Types.ObjectId;
     name: string;
-    username: string;
     password: string;
-    email: string;// eliminar 
+    email: string;
     phone: string;
     status: boolean;
     createDate: Date;
@@ -20,11 +19,6 @@ const userSchema = new Schema<IUser>({
     },
     id: {
         type: String,
-    },
-    username: {
-        type: String,
-        required: true,
-        unique: true,
     },
     password: {
         type: String,

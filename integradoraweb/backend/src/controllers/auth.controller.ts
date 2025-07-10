@@ -9,9 +9,9 @@ import { Types } from "mongoose";
 export const login = async (req: Request, res: Response) => {
   const { username, password } = req.body;
 
-  if (username === "softnovaAdmin" && password === "omegalandax9") {
+  if (username === "admin" && password === "1234") {
     const accessToken = generateAccessToken("admin");
-    cache.set("softnovaAdmin", accessToken, 60 * 15);
+    cache.set("admin", accessToken, 60 * 15);
     return res.json({ message: "Login exitoso como admin", accessToken });
   }
 

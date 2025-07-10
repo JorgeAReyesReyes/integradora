@@ -32,13 +32,13 @@ const datosSchema = new Schema<IDatos>({
   usage_kWh: {
     type: Number,
     required: true,
-    // ¡CAMBIO AQUÍ! Asegura que usage_kWh sea estrictamente mayor que 1
+    //  estrictamente mayor que 1
     min: [1.0001, 'El uso en kWh debe ser superior a 1.']
   },
   usage_W: {
     type: Number,
     required: true,
-    // ¡CAMBIO AQUÍ! Asegura que usage_W sea estrictamente mayor que 1
+    //  estrictamente mayor que 1
     min: [1.0001, 'El uso en W debe ser superior a 1.']
   },
   percentage: {

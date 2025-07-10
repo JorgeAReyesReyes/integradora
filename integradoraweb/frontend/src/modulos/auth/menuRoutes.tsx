@@ -1,10 +1,9 @@
 import UserForm from '../UserForm';
 import LoginForm from '../LoginForm';
-import Planta_baja from '../Planta_baja';   
-import Planta_alta from '../Planta_alta'; 
 import Comment  from '../Comment'; 
 import HorarioForm from '../HorarioForm'; 
-
+import DatosEmporia from '../DatosEmporia'; 
+import EdificioC from '../EdificioC';
 export interface MenuRoute {
   path: string;
   Element: JSX.Element;
@@ -25,17 +24,6 @@ const routes: MenuRoute[] = [
   },
 
   {
-    path: '/planta_baja',
-    Element: <Planta_baja />,
-    label: 'Planta Baja',
-  },
-  {
-    path: '/planta_alta',
-    Element: <Planta_alta />,
-    label: 'Planta Alta',
-  },
-
-  {
     path: '/Comment',
     Element: <Comment />,
     label: 'Comentarios',
@@ -46,6 +34,17 @@ const routes: MenuRoute[] = [
     Element: <HorarioForm />,
     label: 'Horarios',
   },
+    
+  { path: "/EdificioC", 
+    Element: <EdificioC />,
+    label: "EdificioC"
+              
+
+  },
+    { path: "/DatosEmporia", 
+        Element: <DatosEmporia />,
+          label: "consumo "
+               },
 ];
 
 export default routes;

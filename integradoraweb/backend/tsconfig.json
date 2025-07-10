@@ -10,6 +10,6 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["src"],
+  "include": ["src", "../frontend/src/modulos/DatosEmporia.ts"],
   "exclude": ["node_modules"]
 }

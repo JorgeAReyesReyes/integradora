@@ -1,5 +1,7 @@
 import React from 'react';
-import { Form, Input, Button, message } from 'antd';
+import { Form, Input, Button, message, Select, Switch } from 'antd';
+
+const { Option } = Select;
 
 const UserForm: React.FC = () => {
   const [form] = Form.useForm();
@@ -12,7 +14,8 @@ const UserForm: React.FC = () => {
   return (
     <div
       style={{
-        height: '100vh',
+        height: '100%',
+        minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-start',
@@ -30,7 +33,7 @@ const UserForm: React.FC = () => {
         layout="vertical"
         onFinish={onFinish}
         style={{
-          maxWidth: 400,
+          maxWidth: 500,
           width: '100%',
           background: '#fff',
           padding: '2rem',
@@ -39,23 +42,23 @@ const UserForm: React.FC = () => {
         }}
       >
         <Form.Item
-          label={<span style={{ fontWeight: 'bold' }}>Nombre completo</span>}
-          name="fullName"
-          rules={[{ required: true, message: 'Por favor ingresa tu nombre completo' }]}
+          label="Nombre"
+          name="name"
+          rules={[{ required: true, message: 'Por favor ingresa tu nombre' }]}
         >
-          <Input placeholder="Nombre completo" style={{ height: '45px' }} />
+          <Input placeholder="Nombre" style={{ height: '45px' }} />
         </Form.Item>
 
         <Form.Item
-          label={<span style={{ fontWeight: 'bold' }}>Nombre de usuario</span>}
-          name="username"
-          rules={[{ required: true, message: 'Por favor ingresa tu nombre de usuario' }]}
+          label="correo electronico"
+          name="email"
+          rules={[{ required: true, message: 'Por favor ingresa tu email' }]}
         >
-          <Input placeholder="Nombre de usuario" style={{ height: '45px' }} />
+          <Input placeholder="correo electronico" style={{ height: '45px' }} />
         </Form.Item>
 
         <Form.Item
-          label={<span style={{ fontWeight: 'bold' }}>Contraseña</span>}
+          label="Contraseña"
           name="password"
           rules={[{ required: true, message: 'Por favor ingresa tu contraseña' }]}
           hasFeedback
@@ -64,7 +67,7 @@ const UserForm: React.FC = () => {
         </Form.Item>
 
         <Form.Item
-          label={<span style={{ fontWeight: 'bold' }}>Confirmar contraseña</span>}
+          label="Confirmar contraseña"
           name="confirmPassword"
           dependencies={['password']}
           hasFeedback
@@ -83,6 +86,31 @@ const UserForm: React.FC = () => {
           <Input.Password placeholder="Confirmar contraseña" style={{ height: '45px' }} />
         </Form.Item>
 
+        <Form.Item
+          label="Teléfono"
+          name="phone"
+          rules={[{ required: true, message: 'Por favor ingresa tu número de teléfono' }]}
+        >
+          <Input placeholder="Teléfono" style={{ height: '45px' }} />
+        </Form.Item>
+
+        <Form.Item
+          label="Asignar un Rol"
+          name="rolse"
+          rules={[{ required: true, message: 'Selecciona al menos un rol' }]}
+        >
+          <Select
+            mode="multiple"
+            placeholder="Selecciona roles"
+            style={{ width: '100%' }}
+          >
+            <Option value="admin">Administrador</Option>
+            <Option value="user">Usuario</Option>
+            <Option value="moderador">Moderador</Option>
+          </Select>
+        </Form.Item>
+
+      
         <Form.Item>
           <Button
             type="primary"

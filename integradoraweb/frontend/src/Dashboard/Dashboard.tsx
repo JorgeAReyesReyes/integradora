@@ -5,7 +5,6 @@ import {
   CommentOutlined,
   AlertOutlined,
   DatabaseOutlined,
-  ApartmentOutlined,
   HomeOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
@@ -51,14 +50,7 @@ const Dashboard: React.FC = () => {
                icon: <UserOutlined />,
                 label: "Usuarios" 
               },
-            { key: "/planta_alta", 
-              icon: <ApartmentOutlined />, 
-              label: "Planta Alta" 
-            },
-            { key: "/planta_baja",
-               icon: <HomeOutlined />, 
-               label: "Planta Baja"
-               },
+            
             { key: "/comment", 
               icon: <CommentOutlined />,
                label: "Comentarios" 
@@ -70,6 +62,16 @@ const Dashboard: React.FC = () => {
             { key: "/horarioform", 
               icon: <DatabaseOutlined />,
                label: "Horarios"
+               },
+
+               { key: "/EdificioC", 
+              icon: <HomeOutlined />,
+               label: "Monitoreo"
+               },
+
+                { key: "/DatosEmporia", 
+              icon: <DatabaseOutlined />,
+               label: "consumo "
                },
           ]}
         />
