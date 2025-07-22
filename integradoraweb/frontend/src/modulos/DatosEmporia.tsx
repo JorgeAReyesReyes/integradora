@@ -14,10 +14,9 @@ interface DatoEnergia {
   percentage: number;
 }
 
-// Utilidad para generar un dato aleatorio
 const generarDatoAleatorio = (channelNum: number): DatoEnergia => {
   const usage_W = parseFloat((Math.random() * 2000).toFixed(2));
-  const usage_kWh = parseFloat((usage_W / 1000 * (1 / 60)).toFixed(4)); // suposición: 1 min de uso
+  const usage_kWh = parseFloat(((usage_W / 1000) * (1 / 60)).toFixed(4));
   const percentage = parseFloat((Math.random() * 100).toFixed(1));
 
   return {
@@ -37,17 +36,23 @@ const DatosEmporia: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simular delay y datos
     setTimeout(() => {
-      const canales = Array.from({ length: 12 }, (_, i) => i); // 0 al 11
-      const seleccion = canales.sort(() => 0.5 - Math.random()).slice(0, 10); // 10 canales aleatorios
-      const datosGenerados = seleccion.map(generarDatoAleatorio);
+      const datosGenerados = Array.from({ length: 11 }, (_, i) =>
+        generarDatoAleatorio(i + 1)
+      );
       setDatos(datosGenerados);
       setLoading(false);
-    }, 1000); // Simula 1 segundo de carga
+    }, 1000);
   }, []);
 
   const columnas = [
+    {
+      title: "Canal",
+      dataIndex: "channel_name",
+      key: "channel_name",
+      sorter: (a: DatoEnergia, b: DatoEnergia) =>
+        a.channel_num - b.channel_num,
+    },
     {
       title: "Fecha",
       dataIndex: "timestamp",
@@ -55,11 +60,6 @@ const DatosEmporia: React.FC = () => {
       render: (fecha: string) => new Date(fecha).toLocaleString(),
       sorter: (a: DatoEnergia, b: DatoEnergia) =>
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-    },
-    {
-      title: "Canal",
-      dataIndex: "channel_name",
-      key: "channel_name",
     },
     {
       title: "kWh",
@@ -95,13 +95,13 @@ const DatosEmporia: React.FC = () => {
       }}
     >
       <Space direction="vertical" style={{ width: "100%" }}>
-        <Title level={3}>Consumo de energía (Simulado)</Title>
+        <Title level={3}>Consumo de energía</Title>
         <Table
           dataSource={datos}
           columns={columnas}
           rowKey="_id"
           loading={loading}
-          pagination={{ pageSize: 10 }}
+          pagination={{ pageSize: 11 }}
         />
       </Space>
     </Card>
