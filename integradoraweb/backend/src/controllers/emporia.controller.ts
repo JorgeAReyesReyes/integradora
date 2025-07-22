@@ -14,7 +14,7 @@ export const actualizarDatos = async (_req: Request, res: Response) => {
   });
 
   python.stderr.on("data", (data) => {
-    console.error(" Error de Python:", data.toString());
+    console.error("Error de Python:", data.toString());
   });
 
   python.on("close", async (code) => {
@@ -25,20 +25,20 @@ export const actualizarDatos = async (_req: Request, res: Response) => {
     try {
       const datos = JSON.parse(dataOutput);
 
-      datos.forEach(d => {
-  // Convierte timestamp a Date si cambiaste el esquema
-  d.timestamp = new Date(d.timestamp);
-});
-
-await Datos.insertMany(datos);
-
-      // Imprimir en consola
-      console.log(" Datos recibidos desde Emporia:");
-      datos.forEach((datos, i) => {
-        console.log(`  ${i + 1}. Canal ${datos.channel_name}: ${datos.usage_W.toFixed(2)} W`);
+      // Convertir timestamp a Date
+      datos.forEach((d: any) => {
+        d.timestamp = new Date(d.timestamp);
       });
 
+      // Insertar en BD
       const inserted = await Datos.insertMany(datos);
+
+      // Log consola
+      console.log("Datos recibidos desde Emporia:");
+      inserted.forEach((d, i) => {
+        console.log(`  ${i + 1}. Canal ${d.channel_name}: ${d.usage_W.toFixed(2)} W`);
+      });
+
       return res.status(200).json({
         message: "Datos insertados con éxito",
         registros: inserted.length,

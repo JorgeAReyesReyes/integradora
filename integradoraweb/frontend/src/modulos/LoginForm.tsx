@@ -1,6 +1,6 @@
 import React from 'react';
-import { LockOutlined, UserOutlined } from '@ant-design/icons';
-import { Button, Form, Input } from 'antd';
+import { LockOutlined, MailOutlined } from '@ant-design/icons';
+import { Button, Form, Input, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext';
 
@@ -9,23 +9,31 @@ const LoginForm: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
   const handlersumit = async () => {
     try {
       const values = form.getFieldsValue();
       console.log(values);
 
-      const response = await fetch('http://localhost:3000/api/auth/login', {
+      const response = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values),
       });
 
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al iniciar sesión');
+      }
+
       login(data.accessToken);
-      navigate('/');
+      navigate('/dashboard');
       form.resetFields();
-    } catch (error) {
-      console.log('Ocurrió un error en LoginForm.tsx: ', error);
+    } catch (error: any) {
+      console.error('Ocurrió un error en LoginForm.tsx:', error);
+      message.error(error.message || 'Ocurrió un error al iniciar sesión');
     }
   };
 
@@ -38,22 +46,21 @@ const LoginForm: React.FC = () => {
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
-        backgroundColor: '##F2FDFD.',
+        backgroundColor: '#Fff',
       }}
     >
       {/* Logo */}
       <img
-        src="https://alejandrone.mx/virtualtours/UTDVirtualTour/images/image_1.png" 
+        src="https://alejandrone.mx/virtualtours/UTDVirtualTour/images/image_1.png"
         style={{ width: 300, marginBottom: 20 }}
+        alt="logo"
       />
 
       {/* Título */}
       <h2 style={{ marginBottom: 5, textAlign: 'center' }}>
-        Sistema de Monitoreo de Aires Acondicionados 
+        Sistema de Monitoreo de Aires Acondicionados
       </h2>
-      <p style={{ color: '#888', marginBottom: 30 }}>
-        Inicia sesión 
-      </p>
+      <p style={{ color: '#888', marginBottom: 30 }}>Inicia sesión</p>
 
       {/* Formulario */}
       <Form
@@ -65,12 +72,15 @@ const LoginForm: React.FC = () => {
       >
         <Form.Item
           label="Correo electrónico"
-          name="username"
-          rules={[{ required: true, message: 'Ingresa tu correo' }]}
+          name="email"
+          rules={[
+            { required: true, message: 'Ingresa tu correo' },
+            { type: 'email', message: 'Correo no válido' },
+          ]}
         >
           <Input
             placeholder="Ingresa tu correo"
-            prefix={<UserOutlined />}
+            prefix={<MailOutlined />}
             size="large"
           />
         </Form.Item>

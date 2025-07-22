@@ -8,17 +8,14 @@ export interface IUser extends Document {
     phone: string;
     status: boolean;
     createDate: Date;
-    delateDate: Date;
-    roles: Types.ObjectId[]; // Referencia hacia varios Roles
+    deleteDate?: Date;          
+    roles: Types.ObjectId[];    
 }
 
 const userSchema = new Schema<IUser>({
     name: {
         type: String,
         required: true,
-    },
-    id: {
-        type: String,
     },
     password: {
         type: String,
@@ -49,11 +46,10 @@ const userSchema = new Schema<IUser>({
         required: true,
         default: true,
     },
-    delateDate: {
+    deleteDate: {                
         type: Date,
     },
 });
 
 // Exportamos el modelo
 export const User = model<IUser>("User", userSchema);
-

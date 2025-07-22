@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Table, Typography, Card, Space, Tag } from "antd";
-import axios from "axios";
 
 const { Title } = Typography;
 
-interface Datos {
+interface DatoEnergia {
   _id: string;
   timestamp: string;
   device_gid: number;
@@ -15,21 +14,37 @@ interface Datos {
   percentage: number;
 }
 
+// Utilidad para generar un dato aleatorio
+const generarDatoAleatorio = (channelNum: number): DatoEnergia => {
+  const usage_W = parseFloat((Math.random() * 2000).toFixed(2));
+  const usage_kWh = parseFloat((usage_W / 1000 * (1 / 60)).toFixed(4)); // suposición: 1 min de uso
+  const percentage = parseFloat((Math.random() * 100).toFixed(1));
+
+  return {
+    _id: `${channelNum}-${Date.now()}`,
+    timestamp: new Date().toISOString(),
+    device_gid: 464590,
+    channel_num: channelNum,
+    channel_name: `Canal ${channelNum}`,
+    usage_kWh,
+    usage_W,
+    percentage,
+  };
+};
+
 const DatosEmporia: React.FC = () => {
   const [datos, setDatos] = useState<DatoEnergia[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3000/api/datos")
-      .then((res) => {
-        setDatos(res.data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error al cargar datos:", err);
-        setLoading(false);
-      });
+    // Simular delay y datos
+    setTimeout(() => {
+      const canales = Array.from({ length: 12 }, (_, i) => i); // 0 al 11
+      const seleccion = canales.sort(() => 0.5 - Math.random()).slice(0, 10); // 10 canales aleatorios
+      const datosGenerados = seleccion.map(generarDatoAleatorio);
+      setDatos(datosGenerados);
+      setLoading(false);
+    }, 1000); // Simula 1 segundo de carga
   }, []);
 
   const columnas = [
@@ -72,13 +87,15 @@ const DatosEmporia: React.FC = () => {
   ];
 
   return (
-
-
-
-    
-    <Card style={{ margin: "20px" }}>
+    <Card
+      styles={{
+        body: {
+          margin: "20px",
+        },
+      }}
+    >
       <Space direction="vertical" style={{ width: "100%" }}>
-        <Title level={3}>Consumo de energía </Title>
+        <Title level={3}>Consumo de energía (Simulado)</Title>
         <Table
           dataSource={datos}
           columns={columnas}

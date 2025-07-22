@@ -40,3 +40,20 @@
 .read-the-docs {
   color: #888;
 }
+.custom-notification {
+  background-color: #f0fff0 !important; /* Suave verde de fondo */
+  border-left: 6px solid #006400 !important; /* Borde izquierdo verde oscuro */
+  font-size: 16px !important;
+  color: #006400 !important;
+}
+
+.custom-notification .ant-notification-notice-message {
+  font-weight: bold;
+  font-size: 18px;
+  color: #006400 !important;
+}
+
+.custom-notification .ant-notification-notice-description {
+  font-size: 16px;
+  color: #006400 !important;
+}

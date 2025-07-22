@@ -13,39 +13,35 @@ export interface IDatos extends Document {
 const datosSchema = new Schema<IDatos>({
   timestamp: {
     type: Date,
-    required: true 
+    required: true,
   },
   device_gid: {
     type: Number,
     required: true,
-    min: [1, 'El ID del dispositivo debe ser un número positivo.']
   },
   channel_num: {
     type: Number,
     required: true,
-    min: [1, 'El número de canal debe ser un número positivo.']
   },
   channel_name: {
     type: String,
-    required: true
+    required: true,
   },
   usage_kWh: {
     type: Number,
     required: true,
-    //  estrictamente mayor que 1
-    min: [1.0001, 'El uso en kWh debe ser superior a 1.']
+   min: [1.0001, 'El uso en kWh debe ser superior a 1.'],
   },
   usage_W: {
     type: Number,
     required: true,
-    //  estrictamente mayor que 1
-    min: [1.0001, 'El uso en W debe ser superior a 1.']
+    min: [1.0001, 'El uso en W debe ser superior a 1.'],
   },
   percentage: {
     type: Number,
     required: true,
     min: [0, 'El porcentaje no puede ser negativo.'],
-    max: [100, 'El porcentaje no puede exceder 100.']
+    max: [100, 'El porcentaje no puede exceder 100.'],
   },
 });
 

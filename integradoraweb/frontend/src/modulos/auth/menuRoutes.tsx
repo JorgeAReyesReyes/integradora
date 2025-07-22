@@ -1,50 +1,53 @@
 import UserForm from '../UserForm';
 import LoginForm from '../LoginForm';
-import Comment  from '../Comment'; 
+import Comment from '../Comment'; 
 import HorarioForm from '../HorarioForm'; 
 import DatosEmporia from '../DatosEmporia'; 
 import EdificioC from '../EdificioC';
+import Dashboard from "./Dashboard/Dashboard";
+
 export interface MenuRoute {
   path: string;
-  Element: JSX.Element;
+  element: JSX.Element; 
   label: string;
 }
 
 const routes: MenuRoute[] = [
-  
   {
-    path: '/users',
-    Element: <UserForm />,
+    path: 'users',
+    element: <UserForm />,
     label: 'Usuarios',
   },
   {
-    path: '/login',
-    Element: <LoginForm />,
+    path: 'login',
+    element: <LoginForm />,
     label: 'Login',
   },
-
   {
-    path: '/Comment',
-    Element: <Comment />,
+    path: 'Comment',
+    element: <Comment />,
     label: 'Comentarios',
   },
-
   {
-    path: '/HorarioForm',
-    Element: <HorarioForm />,
+    path: 'HorarioForm',
+    element: <HorarioForm />,
     label: 'Horarios',
   },
-    
-  { path: "/EdificioC", 
-    Element: <EdificioC />,
+  {
+    path: "EdificioC",
+    element: <EdificioC />,
     label: "EdificioC"
-              
-
   },
-    { path: "/DatosEmporia", 
-        Element: <DatosEmporia />,
-          label: "consumo "
-               },
+  {
+    path: "DatosEmporia",
+    element: <DatosEmporia />,
+    label: "Consumo"
+  },
+ {
+  path: "dashboard",
+  element: <Dashboard />,
+  label: "Dashboard"
+}
 ];
 
 export default routes;

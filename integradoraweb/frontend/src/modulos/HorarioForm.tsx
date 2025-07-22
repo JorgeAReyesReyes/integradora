@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
-import { Layout, Typography, Table, Card, Button, Tag, Space, message,} from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Layout, Typography, Table, Card, Button, Tag, Space, message, Select, Modal } from 'antd';
+import { fetchHorarios, deleteHorariosPorSalon } from '../api/horarios';
+import axios from 'axios';
 
 const { Content } = Layout;
 const { Title } = Typography;
+const { Option } = Select;
+const { confirm } = Modal;
 
 const dayOptions = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 const timeSlots = Array.from({ length: 13 }, (_, i) => {
@@ -13,14 +17,13 @@ const timeSlots = Array.from({ length: 13 }, (_, i) => {
 });
 const salones = Array.from({ length: 14 }, (_, i) => `C${i + 1}`);
 
-// Generar estructura vacía por salón
 const generarDatosIniciales = () => {
-  const datos: any = {};
+  const datos: Record<string, any[]> = {};
   salones.forEach((salon) => {
     datos[salon] = timeSlots.map((slot) => {
-      const fila: any = { key: slot, horario: slot };
+      const fila: Record<string, any> = { key: slot, horario: slot };
       dayOptions.forEach((dia) => {
-        fila[dia] = ''; // inicial vacío
+        fila[dia] = '';
       });
       return fila;
     });
@@ -28,21 +31,121 @@ const generarDatosIniciales = () => {
   return datos;
 };
 
+const formatearHora = (fecha: string) => {
+  const d = new Date(fecha);
+  return d.toTimeString().slice(0, 5);
+};
+
 const HorarioForm: React.FC = () => {
-  const [horarios, setHorarios] = useState(generarDatosIniciales);
+  const [horarios, setHorarios] = useState<Record<string, any[]>>(generarDatosIniciales);
   const [modoEdicion, setModoEdicion] = useState(false);
+  const [salonSeleccionado, setSalonSeleccionado] = useState(salones[0]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    cargarDatos();
+  }, []);
+
+  const cargarDatos = async () => {
+    try {
+      const { data } = await fetchHorarios();
+      const nuevosHorarios = generarDatosIniciales();
+
+      data.forEach((horario: any) => {
+        const slot = `${formatearHora(horario.inicioDate)} - ${formatearHora(horario.finDate)}`;
+        const fila = nuevosHorarios[horario.salon]?.find((f) => f.horario === slot);
+        if (fila) {
+          fila[horario.day] = 'Ocupado';
+        }
+      });
+
+      setHorarios(nuevosHorarios);
+    } catch (error) {
+      console.error('Error cargando horarios:', error);
+      message.error('Error cargando horarios');
+    }
+  };
+
+  const guardarCambios = async () => {
+    setLoading(true);
+
+    try {
+      const nuevosHorariosList: any[] = [];
+
+      horarios[salonSeleccionado].forEach((fila) => {
+        dayOptions.forEach((dia) => {
+          if (fila[dia] === 'Ocupado') {
+            const [inicio, fin] = fila.horario.split(' - ');
+            const fechaBase = new Date().toISOString().split('T')[0];
+
+            nuevosHorariosList.push({
+              day: dia,
+              inicioDate: new Date(`${fechaBase}T${inicio}:00`).toISOString(),
+              finDate: new Date(`${fechaBase}T${fin}:00`).toISOString(),
+            });
+          }
+        });
+      });
+
+      console.log('Datos a guardar para salón', salonSeleccionado, nuevosHorariosList);
+
+      await axios.post(
+        `http://localhost:3001/api/horarios/${salonSeleccionado}/completo`,
+        nuevosHorariosList
+      );
+
+      message.success('Cambios guardados');
+      setModoEdicion(false);
+      await cargarDatos();
+    } catch (error) {
+      console.error(error);
+      message.error('Error al guardar');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const manejarClick = (salon: string, slot: string, dia: string) => {
     if (!modoEdicion) return;
 
-    setHorarios((prev: any) => {
+    setHorarios((prev) => {
       const nuevos = { ...prev };
-      nuevos[salon] = nuevos[salon].map((fila: any) =>
+      nuevos[salon] = nuevos[salon].map((fila) =>
         fila.horario === slot
           ? { ...fila, [dia]: fila[dia] === 'Ocupado' ? '' : 'Ocupado' }
           : fila
       );
       return nuevos;
+    });
+  };
+
+  const borrarHorarios = () => {
+    confirm({
+      title: `¿Seguro que quieres borrar todos los horarios del salón ${salonSeleccionado}?`,
+      okText: 'Sí',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk: async () => {
+        setLoading(true);
+        try {
+          await deleteHorariosPorSalon(salonSeleccionado);
+          message.success(`Horarios del salón ${salonSeleccionado} eliminados`);
+
+          setHorarios((prev) => {
+            const nuevos = { ...prev };
+            nuevos[salonSeleccionado] = nuevos[salonSeleccionado].map((fila) => {
+              dayOptions.forEach((dia) => (fila[dia] = ''));
+              return fila;
+            });
+            return nuevos;
+          });
+        } catch (error) {
+          console.error(error);
+          message.error('Error al eliminar horarios');
+        } finally {
+          setLoading(false);
+        }
+      },
     });
   };
 
@@ -77,50 +180,49 @@ const HorarioForm: React.FC = () => {
     })),
   ];
 
-  const guardarCambios = () => {
-    console.log('Datos a guardar:', horarios);
-    message.success('Cambios guardados');
-    setModoEdicion(false);
-  };
-
   return (
-    <Layout
-      style={{
-        minHeight: '100vh',
-        backgroundColor: '#f0f2f5',
-        padding: '2rem',
-      }}
-    >
-      <Content style={{ maxWidth: '1100px', margin: '0 auto' }}>
-        <Title
-          level={3}
-          style={{ textAlign: 'center', marginBottom: '2rem', color: '#333' }}
-        >
+    <Layout style={{ minHeight: '100vh', backgroundColor: '#f0f2f5', padding: '2rem' }}>
+      <Content style={{ maxWidth: 1100, margin: '0 auto' }}>
+        <Title level={3} style={{ textAlign: 'center', marginBottom: '2rem', color: '#333' }}>
           Horarios por salón
         </Title>
 
-        {salones.map((salon) => (
-          <Card
-            key={salon}
-            title={`Salón ${salon}`}
-            style={{
-              marginBottom: '2rem',
-              background: '#fff',
-              borderRadius: '8px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            }}
-            bodyStyle={{ padding: '1rem' }}
+        <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+          <Select
+            value={salonSeleccionado}
+            onChange={(value) => setSalonSeleccionado(value)}
+            style={{ width: 150 }}
+            disabled={loading}
           >
-            <Table
-              columns={columnas(salon)}
-              dataSource={horarios[salon]}
-              pagination={false}
-              bordered
-              scroll={{ x: 'max-content' }}
-              size="middle"
-            />
-          </Card>
-        ))}
+            {salones.map((salon) => (
+              <Option key={salon} value={salon}>
+                {salon}
+              </Option>
+            ))}
+          </Select>
+        </div>
+
+        <Card
+          title={`Salón ${salonSeleccionado}`}
+          style={{
+            marginBottom: '2rem',
+            background: '#fff',
+            borderRadius: 8,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          }}
+          bodyStyle={{ padding: '1rem' }}
+        >
+          <Table
+            columns={columnas(salonSeleccionado)}
+            dataSource={horarios[salonSeleccionado]}
+            pagination={false}
+            bordered
+            scroll={{ x: 'max-content' }}
+            size="middle"
+            loading={loading}
+            rowKey="key"
+          />
+        </Card>
 
         <Space
           style={{
@@ -140,6 +242,7 @@ const HorarioForm: React.FC = () => {
               backgroundColor: '#1890ff',
               borderColor: '#1890ff',
             }}
+            disabled={loading}
           >
             {modoEdicion ? 'Cancelar edición' : 'Editar'}
           </Button>
@@ -147,7 +250,7 @@ const HorarioForm: React.FC = () => {
           <Button
             type="default"
             onClick={guardarCambios}
-            disabled={!modoEdicion}
+            disabled={!modoEdicion || loading}
             style={{
               width: 180,
               height: 45,
@@ -155,11 +258,27 @@ const HorarioForm: React.FC = () => {
               backgroundColor: '#52c41a',
               color: '#fff',
               borderColor: '#52c41a',
-              opacity: modoEdicion ? 1 : 0.6,
-              cursor: modoEdicion ? 'pointer' : 'not-allowed',
+              opacity: modoEdicion && !loading ? 1 : 0.6,
+              cursor: modoEdicion && !loading ? 'pointer' : 'not-allowed',
             }}
+            loading={loading}
           >
             Guardar cambios
+          </Button>
+
+          <Button
+            danger
+            onClick={borrarHorarios}
+            disabled={!modoEdicion || loading}
+            style={{
+              width: 180,
+              height: 45,
+              fontSize: '1rem',
+              opacity: modoEdicion && !loading ? 1 : 0.6,
+              cursor: modoEdicion && !loading ? 'pointer' : 'not-allowed',
+            }}
+          >
+            Borrar horarios
           </Button>
         </Space>
       </Content>

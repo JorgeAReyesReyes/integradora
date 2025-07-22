@@ -1,69 +1,113 @@
 import { Request, Response } from "express";
-import { Horario } from "../models/Horarios";
-import { isValidObjectId } from "mongoose";
+import { Horario } from "../models/Horario";
 
-
-// GET /api/horarios                        → listar todos
-export const getHorarios = async (_req: Request, res: Response) => {
-  const horarios = await Horario.find().sort({ inicioDate: 1 });
-  res.json(horarios);
+// Obtener todos los horarios
+export const getHorarios = async (req: Request, res: Response) => {
+  try {
+    const horario = await Horario.find();
+    res.json(horario);
+  } catch (error) {
+    console.error('Error en getHorarios:', error);
+    res.status(500).json({ error: "Error al obtener horarios" });
+  }
 };
 
-// detalle
-export const getHorarioById = async (req: Request, res: Response) => {
-  const { id } = req.params;
-
-  if (!isValidObjectId(id))
-    return res.status(400).json({ message: "ID no válido" });
-
-  const horario = await Horario.findById(id);
-  if (!horario) return res.status(404).json({ message: "No encontrado" });
-
-  res.json(horario);
-};
-
-// crear
+// Crear un horario individual
 export const createHorario = async (req: Request, res: Response) => {
-  const { salon, day, inicioDate, finDate } = req.body;
-
   try {
-    const nuevo = await Horario.create({ salon, day, inicioDate, finDate });
-    res.status(201).json(nuevo);
-  } catch (err) {
-    res.status(400).json({ message: "Error al crear", details: err });
+    const nuevoHorario = new Horario(req.body);
+    await nuevoHorario.save();
+    res.status(201).json(nuevoHorario);
+  } catch (error) {
+    console.error('Error en createHorario:', error);
+    res.status(500).json({ error: "Error al crear el horario" });
   }
 };
 
-// actualizar
+// Actualizar un horario por ID
 export const updateHorario = async (req: Request, res: Response) => {
-  const { id } = req.params;
-
-  if (!isValidObjectId(id))
-    return res.status(400).json({ message: "ID no válido" });
-
   try {
-    const actualizado = await Horario.findByIdAndUpdate(id, req.body, {
+    const { id } = req.params;
+    const horarioActualizado = await Horario.findByIdAndUpdate(id, req.body, {
       new: true,
-      runValidators: true,
     });
-    if (!actualizado)
-      return res.status(404).json({ message: "No encontrado" });
-
-    res.json(actualizado);
-  } catch (err) {
-    res.status(400).json({ message: "Error al actualizar", details: err });
+    res.json(horarioActualizado);
+  } catch (error) {
+    console.error('Error en updateHorario:', error);
+    res.status(500).json({ error: "Error al actualizar el horario" });
   }
 };
 
-//eliminar
+// Eliminar un horario por ID
 export const deleteHorario = async (req: Request, res: Response) => {
-  const { id } = req.params;
+  try {
+    const { id } = req.params;
+    await Horario.findByIdAndDelete(id);
+    res.json({ mensaje: "Horario eliminado correctamente" });
+  } catch (error) {
+    console.error('Error en deleteHorario:', error);
+    res.status(500).json({ error: "Error al eliminar el horario" });
+  }
+};
 
-  if (!isValidObjectId(id))
-    return res.status(400).json({ message: "ID no válido" });
+// Eliminar todos los horarios de un salón
+export const deleteHorariosPorSalon = async (req: Request, res: Response) => {
+  try {
+    const { salon } = req.params;
+    await Horario.deleteMany({ salon });
+    res.json({ mensaje: `Horarios del salón ${salon} eliminados` });
+  } catch (error) {
+    console.error('Error en deleteHorariosPorSalon:', error);
+    res.status(500).json({ error: "Error al eliminar horarios por salón" });
+  }
+};
 
-  const eliminado = await Horario.findByIdAndDelete(id);
-  if (!eliminado) return res.status(404).json({ message: "No encontrado" });
+// Crear múltiples horarios para un salón
+export const createHorariosPorSalon = async (req: Request, res: Response) => {
+  try {
+    const { salon } = req.params;
+    const horarios = req.body;
 
-  res.json({ message: "Horario eliminado" });
+    if (!Array.isArray(horarios)) {
+      return res.status(400).json({ error: "Se esperaba un arreglo de horarios" });
+    }
+
+    const horariosConSalon = horarios.map((h: any) => ({ ...h, salon }));
+
+    const horariosInsertados = await Horario.insertMany(horariosConSalon);
+
+    res.status(201).json({
+      mensaje: `Horarios insertados para el salón ${salon}`,
+      horarios: horariosInsertados,
+    });
+  } catch (error) {
+    console.error('Error en createHorariosPorSalon:', error);
+    res.status(500).json({ error: "Error al crear horarios por salón" });
+  }
+};
+
+// Reemplazar todos los horarios de un salón
+export const guardarHorariosSalonCompleto = async (req: Request, res: Response) => {
+  try {
+    const { salon } = req.params;
+    const nuevosHorarios = req.body;
+
+    if (!Array.isArray(nuevosHorarios)) {
+      return res.status(400).json({ error: "Se esperaba un arreglo de horarios" });
+    }
+
+    await Horario.deleteMany({ salon });
+
+    const horariosConSalon = nuevosHorarios.map((h: any) => ({ ...h, salon }));
+
+    const horariosInsertados = await Horario.insertMany(horariosConSalon);
+
+    res.status(201).json({
+      mensaje: `Horarios reemplazados para el salón ${salon}`,
+      horarios: horariosInsertados,
+    });
+  } catch (error) {
+    console.error('Error en guardarHorariosSalonCompleto:', error);
+    res.status(500).json({ error: "Error al reemplazar horarios por salón" });
+  }
 };

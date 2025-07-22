@@ -73,28 +73,31 @@ const Comment: React.FC = () => {
           locale={{ emptyText: "Sin comentarios" }}
           style={{ marginTop: 12 }}
           renderItem={(item) => (
-            <List.Item
-              style={{
-                background: "#1e1e1e",
-                marginBottom: 10,
-                borderRadius: 8,
-                padding: "12px 16px",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <Button
-  danger
-  shape="circle"
-  icon={<DeleteOutlined />}
-  onClick={() => removeComment(item.id)}
+         <List.Item
   style={{
-    backgroundColor: "yellow",
-    color: "#000", 
-    border: "2px solid yellow",
+    background: "#fff",
+    marginBottom: 10,
+    borderRadius: 8,
+    padding: "12px 16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
   }}
-/>
-            </List.Item>
+>
+  <Text>{item.text}</Text>
+
+  <Button
+    danger
+    shape="circle"
+    icon={<DeleteOutlined />}
+    onClick={() => removeComment(item.id)}
+    style={{
+      backgroundColor: "yellow",
+      color: "#000",
+      border: "2px solid yellow",
+    }}
+  />
+</List.Item>
           )}
         />
       </Content>

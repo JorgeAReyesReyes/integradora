@@ -1,62 +1,53 @@
-from pyemvue import PyEmVue
-from datetime import datetime, timezone
-import json
-import time
 
-# ========================================
-# CONFIGURACIÓN
-# ========================================
+from pyemvue import PyEmVue
+from pyemvue.enums import Scale
+from dotenv import load_dotenv
+import os
+from datetime import datetime
+import time
+import json
+
 EMAIL = "softnova73@gmail.com"
 PASSWORD = "1234567890"
 DEVICE_GID = 464590
 SCALE = "1S"
 UNIT = "KilowattHours"
 
-# ========================================
-# FUNCIÓN PRINCIPAL
-# ========================================
-def obtener_datos():
-    vue = PyEmVue()
-    datos_a_guardar = []
+load_dotenv()
 
-    try:
-        vue.login(EMAIL, PASSWORD)
+vue = PyEmVue()
+vue.login(username=os.getenv("EMPORIA_USER"), password=os.getenv("EMPORIA_PASSWORD"))
 
-        now = datetime.now(timezone.utc)
+devices = vue.get_devices()
 
-        result = vue.get_device_list_usage(
-            deviceGids=[DEVICE_GID],
-            instant=now,
-            scale=SCALE,
-            unit=UNIT
-        )
+device_id = int(os.getenv("EMPORIA_DEVICE_ID", "464590"))  # Usa variable de entorno o valor por defecto
+channels = vue.get_device_channels(devices[0])
 
-        for device_gid, device in result.items():
-            for channel_num, channel in device.channels.items():
-                uso_kWh = channel.usage or 0
-                uso_W = uso_kWh * 1000 * 3600
+while True:
+    now = datetime.utcnow()
+    usage_data = vue.get_usage(device_gids=[device_id], instant=True)
 
-                datos_a_guardar.append({
-                    "timestamp": now.isoformat(),
-                    "device_gid": device_gid,
-                    "channel_num": channel_num,
-                    "channel_name": channel.name,
-                    "usage_kWh": uso_kWh,
-                    "usage_W": uso_W,
-                    "percentage": channel.percentage
-                })
+    results = []
+    for chan in usage_data[device_id].channels:
+        # Buscar corriente (amperios) si está disponible
+        amperios = None
+        if chan.numerator_units and chan.numerator_vals:
+            for unit, val in zip(chan.numerator_units, chan.numerator_vals):
+                if unit.lower() == "a":
+                    amperios = val
 
-        # Solo imprime JSON
-        print(json.dumps(datos_a_guardar))
+        result = {
+            "timestamp": now.isoformat(),
+            "device_gid": device_id,
+            "channel_num": chan.channel_num,
+            "channel_name": chan.name,
+            "usage_kWh": chan.usage,
+            "usage_W": chan.usage * 1000 if chan.usage is not None else 0,
+            "percentage": chan.percentage,
+            "current_A": amperios
+        }
+        results.append(result)
 
-    except Exception as e:
-        # Imprime error como JSON para facilitar manejo desde Node.js
-        print(json.dumps({ "error": str(e) }))
+    print(json.dumps(results, indent=2))
 
-# ========================================
-# BUCLE INFINITO CADA 15 MIN
-# ========================================
-if __name__ == "__main__":
-    while True:
-        obtener_datos()
-        time.sleep(900)  # Espera 15 minutos (900 segundos)
+    time.sleep(900)  # Espera 15 minutos

@@ -41,12 +41,7 @@ const MenuDynamic: React.FC = () => {
       icon: 'UserOutlined',
       roles: ['665a1f2b40fd3a12b3e77612'],
     },
-    {
-      title: 'Productos',
-      path: '/products',
-      icon: 'BarChartOutlined',
-      roles: ['665a1f2b40fd3a12b3e77611', '665a1f2b40fd3a12b3e77612'],
-    },
+    
   ];
 
   // Simular llamada a API y filtrar por rol actual
