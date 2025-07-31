@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, message, Select, Table, Popconfirm, Modal } from 'antd';
+import { Form, Input, Button, message, Table, Popconfirm, Modal, Spin, Alert, ConfigProvider } from 'antd';
 import axios from 'axios';
 
-const { Option } = Select;
+// Configuración del tema de Ant Design con el color naranja
+const orangeTheme = {
+  token: {
+    colorPrimary: '#FFA726',
+  },
+};
 
 interface UserData {
   key: string;
   name: string;
   email: string;
   phone: string;
-  roles: string[];
   status?: boolean;
 }
 
@@ -18,34 +22,84 @@ const UserForm: React.FC = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL;
-  const isEditing = !!editingUser;
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const USERS_ENDPOINT = `${API_BASE_URL}/api/users`;
+
+  const DEMO_USERS: UserData[] = [
+    {
+      key: '1',
+      name: 'Usuario Demo',
+      email: 'usuario@demo.com',
+      phone: '123456789',
+      status: true
+    },
+    {
+      key: '2',
+      name: 'Admin Demo',
+      email: 'admin@demo.com',
+      phone: '987654321',
+      status: true
+    }
+  ];
+
+  const validatePassword = (_: any, value: string) => {
+    if (!value) {
+      return Promise.reject(new Error('Por favor ingresa una contraseña'));
+    }
+    
+    if (value.length < 8 || value.length > 50) {
+      return Promise.reject(new Error('La contraseña debe tener entre 8 y 50 caracteres'));
+    }
+    
+    if (!/[a-z]/.test(value)) {
+      return Promise.reject(new Error('Debe contener al menos una minúscula'));
+    }
+    
+    if (!/[A-Z]/.test(value)) {
+      return Promise.reject(new Error('Debe contener al menos una mayúscula'));
+    }
+    
+    if (!/[0-9]/.test(value)) {
+      return Promise.reject(new Error('Debe contener al menos un número'));
+    }
+    
+    return Promise.resolve();
+  };
 
   const fetchUsers = async () => {
+    setLoading(true);
+    setApiError(null);
     try {
-      const response = await axios.get(`${API_URL}/api/users`);
-      const data = response.data.userList;
-
-      if (!Array.isArray(data)) {
-        throw new Error("La respuesta no contiene un arreglo de usuarios");
-      }
-
-      const formattedUsers: UserData[] = data.map((user: any) => ({
-        key: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        roles: Array.isArray(user.roles)
-          ? user.roles.map((r: any) => r.name || r)
-          : [user.roles],
-        status: user.status ?? true,
+      const response = await axios.get(USERS_ENDPOINT);
+      
+      const usersData = Array.isArray(response.data) ? response.data : 
+                      Array.isArray(response.data?.userList) ? response.data.userList : [];
+      
+      const formattedUsers: UserData[] = usersData.map((user: any) => ({
+        key: user._id || Math.random().toString(36).substr(2, 9),
+        name: user.name || 'No especificado',
+        email: user.email || 'No especificado',
+        phone: user.phone || 'No especificado',
+        status: user.status !== undefined ? user.status : true,
       }));
 
       setUsers(formattedUsers);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al cargar usuarios:", error);
-      message.error("No se pudieron cargar los usuarios");
+      
+      if (error.response?.status === 404) {
+        setApiError("Endpoint de usuarios no encontrado. Mostrando datos de demostración.");
+      } else {
+        setApiError("Error al cargar usuarios. Mostrando datos de demostración.");
+      }
+      
+      setUsers(DEMO_USERS);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,44 +109,67 @@ const UserForm: React.FC = () => {
 
   const onFinish = async (values: any) => {
     try {
+      setLoading(true);
       const payload = {
         name: values.name,
         email: values.email,
         phone: values.phone,
-        password: values.password,
-        role: values.roles,
+        ...(!isEditing && { password: values.password }),
       };
 
+      if (apiError) {
+        message.warning("Modo demostración: los datos no se guardarán");
+        form.resetFields();
+        setEditingUser(null);
+        setIsEditing(false);
+        setIsModalVisible(false);
+        return;
+      }
+
       if (isEditing && editingUser) {
-        await axios.patch(`${API_URL}/api/users/${editingUser.key}`, payload);
+        await axios.patch(`${USERS_ENDPOINT}/${editingUser.key}`, payload);
         message.success("Usuario actualizado correctamente");
       } else {
-        await axios.post(`${API_URL}/api/users`, payload);
+        await axios.post(USERS_ENDPOINT, payload);
         message.success("Usuario registrado correctamente");
       }
 
       form.resetFields();
       setEditingUser(null);
-      fetchUsers();
+      setIsEditing(false);
       setIsModalVisible(false);
+      await fetchUsers();
     } catch (error: any) {
-      console.error("Error al guardar:", error.response?.data || error);
-      message.error("Error al guardar usuario");
+      console.error("Error al guardar:", error);
+      
+      let errorMessage = "Error al guardar usuario";
+      if (error.response) {
+        if (error.response.status === 404) {
+          errorMessage = "Endpoint no encontrado";
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      }
+      
+      message.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDisableUser = async (key: string) => {
     try {
-      await axios.patch(`${API_URL}/api/users/${key}/disable`);
-      setUsers(prevUsers =>
-        prevUsers.map(user =>
-          user.key === key ? { ...user, status: false } : user
-        )
-      );
+      if (apiError) {
+        message.warning("Modo demostración: acción no realizada");
+        return;
+      }
+
+      await axios.patch(`${USERS_ENDPOINT}/${key}/disable`);
       message.success("Usuario dado de baja correctamente");
-    } catch (error) {
+      await fetchUsers();
+    } catch (error: any) {
       console.error(error);
-      message.error("Error al dar de baja el usuario");
+      message.error(error.response?.data?.message || "Error al dar de baja el usuario");
     }
   };
 
@@ -100,47 +177,68 @@ const UserForm: React.FC = () => {
     const userToEdit = users.find(user => user.key === key);
     if (userToEdit) {
       setEditingUser(userToEdit);
+      setIsEditing(true);
       setIsModalVisible(true);
       form.setFieldsValue({
         name: userToEdit.name,
         email: userToEdit.email,
         phone: userToEdit.phone,
-        roles: userToEdit.roles,
-        password: '',
-        confirmPassword: '',
       });
     }
   };
 
   const columns = [
-    { title: 'Nombre', dataIndex: 'name', key: 'name' },
-    { title: 'Correo', dataIndex: 'email', key: 'email' },
-    { title: 'Teléfono', dataIndex: 'phone', key: 'phone' },
+    { 
+      title: 'Nombre', 
+      dataIndex: 'name', 
+      key: 'name',
+      render: (text: string) => <span>{text || 'No especificado'}</span>
+    },
+    { 
+      title: 'Correo', 
+      dataIndex: 'email', 
+      key: 'email',
+      render: (text: string) => <span>{text || 'No especificado'}</span>
+    },
+    { 
+      title: 'Teléfono', 
+      dataIndex: 'phone', 
+      key: 'phone',
+      render: (text: string) => <span>{text || 'No especificado'}</span>
+    },
     {
       title: 'Estado',
       dataIndex: 'status',
       key: 'status',
-      render: (status: boolean | undefined) =>
-        status === false ? (
-          <span style={{ color: 'red' }}>Inactivo</span>
-        ) : (
-          <span style={{ color: 'green' }}>Activo</span>
-        ),
+      render: (status: boolean | undefined) => (
+        <span style={{ color: status !== false ? 'green' : 'red' }}>
+          {status !== false ? 'Activo' : 'Inactivo'}
+        </span>
+      ),
     },
     {
       title: 'Acciones',
       key: 'actions',
       render: (_: any, record: UserData) => (
         <div style={{ display: 'flex', gap: 8 }}>
-          <Button type="link" onClick={() => handleEditUser(record.key)}>Editar</Button>
+          <Button 
+            type="link" 
+            onClick={() => handleEditUser(record.key)}
+            style={{ padding: 0, color: '#FFA726' }}
+          >
+            Editar
+          </Button>
           {record.status !== false && (
             <Popconfirm
-              title="¿Estás seguro de dar de baja a este usuario?"
+              title="¿Dar de baja este usuario?"
               onConfirm={() => handleDisableUser(record.key)}
               okText="Sí"
               cancelText="No"
+              okButtonProps={{ style: { backgroundColor: '#FFA726', borderColor: '#FFA726' } }}
             >
-              <Button type="link" danger>Dar de baja</Button>
+              <Button type="link" danger style={{ padding: 0 }}>
+                Dar de baja
+              </Button>
             </Popconfirm>
           )}
         </div>
@@ -149,146 +247,166 @@ const UserForm: React.FC = () => {
   ];
 
   return (
-    <div
-      style={{
+    <ConfigProvider theme={orangeTheme}>
+      <div style={{
         minHeight: '100vh',
-        padding: '2rem',
-        backgroundColor: '#f0f2f5',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-      }}
-    >
-      <h2 style={{ marginBottom: '2rem', color: '#333' }}>
-        Gestión de Usuarios
-      </h2>
-
-      <div style={{ width: '100%', maxWidth: 800 }}>
-        <div style={{ marginBottom: '1rem', textAlign: 'right' }}>
-          <Button
-            type="primary"
-            onClick={() => {
-              setIsModalVisible(true);
-              setEditingUser(null);
-              form.resetFields();
-            }}
-            style={{ backgroundColor: '#ffa500', borderColor: '#ffa500' }}
-          >
-            Ingresar Nuevo Usuario
-          </Button>
-        </div>
-
-        <Table
-          columns={columns}
-          dataSource={users}
-          pagination={{ pageSize: 5 }}
-        />
-      </div>
-
-      <Modal
-        title={isEditing ? "Editar Usuario" : "Registrar Nuevo Usuario"}
-        visible={isModalVisible}
-        onCancel={() => {
-          setIsModalVisible(false);
-          setEditingUser(null);
-          form.resetFields();
-        }}
-        footer={null}
-        destroyOnClose
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={onFinish}
-        >
-          <Form.Item
-            label="Nombre"
-            name="name"
-            rules={[{ required: true, message: 'Por favor ingresa tu nombre' }]}
-          >
-            <Input placeholder="Nombre" style={{ height: '45px' }} />
-          </Form.Item>
-
-          <Form.Item
-            label="Correo electrónico"
-            name="email"
-            rules={[
-              { required: true, message: 'Por favor ingresa tu email' },
-              { type: 'email', message: 'Ingresa un correo válido' },
-            ]}
-          >
-            <Input placeholder="Correo electrónico" style={{ height: '45px' }} />
-          </Form.Item>
-
-          {!isEditing && (
-            <>
-              <Form.Item
-                label="Contraseña"
-                name="password"
-                rules={[{ required: true, message: 'Ingresa una contraseña con al menos ocho caracteres, mayúsculas y dígitos' }]}
-                hasFeedback
-              >
-                <Input.Password placeholder="Contraseña" style={{ height: '45px' }} />
-              </Form.Item>
-
-              <Form.Item
-                label="Confirmar contraseña"
-                name="confirmPassword"
-                dependencies={['password']}
-                hasFeedback
-                rules={[
-                  { required: true, message: 'Por favor confirma tu contraseña' },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (!value || getFieldValue('password') === value) return Promise.resolve();
-                      return Promise.reject(new Error('¡Las contraseñas no coinciden!'));
-                    },
-                  }),
-                ]}
-              >
-                <Input.Password placeholder="Confirmar contraseña" style={{ height: '45px' }} />
-              </Form.Item>
-            </>
+        padding: '24px',
+        backgroundColor: '#f0f2f5'
+      }}>
+        <div style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          backgroundColor: '#fff',
+          padding: '24px',
+          borderRadius: '8px',
+          boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)'
+        }}>
+          {apiError && (
+            <Alert
+              message="Modo demostración"
+              description={apiError}
+              type="warning"
+              showIcon
+              style={{ marginBottom: '20px' }}
+            />
           )}
 
-          <Form.Item
-            label="Teléfono"
-            name="phone"
-            rules={[{ required: true, message: 'Por favor ingresa tu número de teléfono' }]}
-          >
-            <Input placeholder="Teléfono" style={{ height: '45px' }} />
-          </Form.Item>
-
-          <Form.Item
-            label="Asignar un Rol"
-            name="roles"
-            rules={[{ required: true, message: 'Selecciona al menos un rol' }]}
-          >
-            <Select mode="multiple" placeholder="Selecciona roles" style={{ width: '100%' }}>
-              <Option value="admin">Administrador</Option>
-              <Option value="user">Usuario</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px'
+          }}>
+            <h2 style={{ margin: 0, fontSize: '24px' }}>Gestión de Usuarios</h2>
             <Button
               type="primary"
-              htmlType="submit"
-              block
-              style={{
-                height: '50px',
-                fontSize: '1.2rem',
-                backgroundColor: '#ffa500',
-                borderColor: '#ffa500',
-                boxShadow: '0 2px 8px rgba(255,165,0,0.3)',
+              onClick={() => {
+                setIsModalVisible(true);
+                setEditingUser(null);
+                setIsEditing(false);
+                form.resetFields();
               }}
+              style={{ backgroundColor: '#FFA726', borderColor: '#FFA726' }}
             >
-              {isEditing ? "Actualizar Usuario" : "Registrar Usuario"}
+              Nuevo Usuario
             </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
+          </div>
+
+          <Spin spinning={loading}>
+            <Table
+              columns={columns}
+              dataSource={users}
+              pagination={{ pageSize: 10 }}
+              rowKey="key"
+              bordered
+            />
+          </Spin>
+
+          <Modal
+            title={isEditing ? "Editar Usuario" : "Nuevo Usuario"}
+            open={isModalVisible}
+            onCancel={() => {
+              setIsModalVisible(false);
+              form.resetFields();
+            }}
+            footer={null}
+            width={700}
+            destroyOnClose
+          >
+            <Spin spinning={loading}>
+              <Form
+                form={form}
+                layout="vertical"
+                onFinish={onFinish}
+              >
+                <Form.Item
+                  label="Nombre completo"
+                  name="name"
+                  rules={[
+                    { required: true, message: 'Campo obligatorio' },
+                    { min: 3, message: 'Mínimo 3 caracteres' }
+                  ]}
+                >
+                  <Input placeholder="Ej: Juan Pérez" />
+                </Form.Item>
+
+                <Form.Item
+                  label="Correo electrónico"
+                  name="email"
+                  rules={[
+                    { required: true, message: 'Campo obligatorio' },
+                    { type: 'email', message: 'Email inválido' }
+                  ]}
+                >
+                  <Input placeholder="Ej: usuario@ejemplo.com" />
+                </Form.Item>
+
+                {!isEditing && (
+                  <>
+                    <Form.Item
+                      label="Contraseña"
+                      name="password"
+                      rules={[
+                        { validator: validatePassword }
+                      ]}
+                      hasFeedback
+                    >
+                      <Input.Password 
+                        placeholder="Mínimo 8 caracteres, mayúsculas, minúsculas y números" 
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      label="Confirmar contraseña"
+                      name="confirmPassword"
+                      dependencies={['password']}
+                      hasFeedback
+                      rules={[
+                        { required: true, message: 'Confirma tu contraseña' },
+                        ({ getFieldValue }) => ({
+                          validator(_, value) {
+                            if (!value || getFieldValue('password') === value) {
+                              return Promise.resolve();
+                            }
+                            return Promise.reject(new Error('Las contraseñas no coinciden'));
+                          },
+                        }),
+                      ]}
+                    >
+                      <Input.Password placeholder="Repite la contraseña" />
+                    </Form.Item>
+                  </>
+                )}
+
+                <Form.Item
+                  label="Teléfono"
+                  name="phone"
+                  rules={[
+                    { required: true, message: 'Campo obligatorio' },
+                    { pattern: /^[0-9+\- ]+$/, message: 'Teléfono inválido' }
+                  ]}
+                >
+                  <Input placeholder="Ej: +51 987654321" />
+                </Form.Item>
+
+                <Form.Item>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    block
+                    size="large"
+                    loading={loading}
+                    style={{ backgroundColor: '#FFA726', borderColor: '#FFA726' }}
+                  >
+                    {isEditing ? "Actualizar Usuario" : "Crear Usuario"}
+                  </Button>
+                </Form.Item>
+              </Form>
+            </Spin>
+          </Modal>
+        </div>
+      </div>
+    </ConfigProvider>
   );
 };
 

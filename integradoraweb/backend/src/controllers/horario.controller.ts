@@ -1,18 +1,16 @@
 import { Request, Response } from "express";
 import { Horario } from "../models/Horario";
 
-// Obtener todos los horarios
 export const getHorarios = async (req: Request, res: Response) => {
   try {
-    const horario = await Horario.find();
-    res.json(horario);
+    const horarios = await Horario.find().sort({ salon: 1, day: 1, inicioDate: 1 });
+    res.json(horarios);
   } catch (error) {
     console.error('Error en getHorarios:', error);
     res.status(500).json({ error: "Error al obtener horarios" });
   }
 };
 
-// Crear un horario individual
 export const createHorario = async (req: Request, res: Response) => {
   try {
     const nuevoHorario = new Horario(req.body);
@@ -24,7 +22,6 @@ export const createHorario = async (req: Request, res: Response) => {
   }
 };
 
-// Actualizar un horario por ID
 export const updateHorario = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -38,7 +35,6 @@ export const updateHorario = async (req: Request, res: Response) => {
   }
 };
 
-// Eliminar un horario por ID
 export const deleteHorario = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -50,7 +46,6 @@ export const deleteHorario = async (req: Request, res: Response) => {
   }
 };
 
-// Eliminar todos los horarios de un salón
 export const deleteHorariosPorSalon = async (req: Request, res: Response) => {
   try {
     const { salon } = req.params;
@@ -62,7 +57,6 @@ export const deleteHorariosPorSalon = async (req: Request, res: Response) => {
   }
 };
 
-// Crear múltiples horarios para un salón
 export const createHorariosPorSalon = async (req: Request, res: Response) => {
   try {
     const { salon } = req.params;
@@ -72,8 +66,16 @@ export const createHorariosPorSalon = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Se esperaba un arreglo de horarios" });
     }
 
-    const horariosConSalon = horarios.map((h: any) => ({ ...h, salon }));
+    // Validar que todos los horarios tengan los campos requeridos
+    for (const horario of horarios) {
+      if (!horario.day || !horario.inicioDate || !horario.finDate) {
+        return res.status(400).json({ error: "Todos los horarios deben tener day, inicioDate y finDate" });
+      }
+    }
 
+    await Horario.deleteMany({ salon });
+
+    const horariosConSalon = horarios.map((h: any) => ({ ...h, salon }));
     const horariosInsertados = await Horario.insertMany(horariosConSalon);
 
     res.status(201).json({
@@ -86,7 +88,6 @@ export const createHorariosPorSalon = async (req: Request, res: Response) => {
   }
 };
 
-// Reemplazar todos los horarios de un salón
 export const guardarHorariosSalonCompleto = async (req: Request, res: Response) => {
   try {
     const { salon } = req.params;
@@ -96,11 +97,21 @@ export const guardarHorariosSalonCompleto = async (req: Request, res: Response) 
       return res.status(400).json({ error: "Se esperaba un arreglo de horarios" });
     }
 
+    // Validar horarios antes de guardar
+    const horariosValidados = nuevosHorarios.map((h: any) => {
+      if (!h.day || !h.inicioDate || !h.finDate) {
+        throw new Error("Faltan campos requeridos en alguno de los horarios");
+      }
+      return {
+        salon,
+        day: h.day,
+        inicioDate: new Date(h.inicioDate),
+        finDate: new Date(h.finDate),
+      };
+    });
+
     await Horario.deleteMany({ salon });
-
-    const horariosConSalon = nuevosHorarios.map((h: any) => ({ ...h, salon }));
-
-    const horariosInsertados = await Horario.insertMany(horariosConSalon);
+    const horariosInsertados = await Horario.insertMany(horariosValidados);
 
     res.status(201).json({
       mensaje: `Horarios reemplazados para el salón ${salon}`,
@@ -108,6 +119,9 @@ export const guardarHorariosSalonCompleto = async (req: Request, res: Response) 
     });
   } catch (error) {
     console.error('Error en guardarHorariosSalonCompleto:', error);
-    res.status(500).json({ error: "Error al reemplazar horarios por salón" });
+    res.status(500).json({ 
+      error: "Error al reemplazar horarios por salón",
+      details: error instanceof Error ? error.message : undefined
+    });
   }
 };

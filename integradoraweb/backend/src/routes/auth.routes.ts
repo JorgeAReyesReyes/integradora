@@ -8,6 +8,7 @@ import {
   login,
   saveUser,
   updateToken,
+  getAllRoles
 } from "../controllers/auth.controller";
 import { actualizarDatos } from "../controllers/emporia.controller";
 import {
@@ -28,15 +29,23 @@ import {
 
 const router = Router();
 
+// Verificación de controladores (para debug)
+console.log("Login function:", typeof login); // Debe mostrar "function"
+console.log("getAllUsers function:", typeof getAllUsers); // Debe mostrar "function"
+
 // Auth  
 router.post("/login", login);
 router.get("/getTime/:userId", getTimeToken);
 router.patch("/update/:userId", updateToken);
+
+// Users
 router.get("/users", getAllUsers);
 router.post("/users", saveUser);
 router.patch("/users/:userId", updateUser);
-router.delete("/users/:userId", deleteUser);
-router.patch("/users/:userId/disable", disableUser);
+router.delete("/users/:userId", disableUser);
+
+// Roles
+router.get("/roles", getAllRoles);
 
 // Datos Emporia  
 router.get("/datos/actualizar", actualizarDatos);
@@ -47,8 +56,8 @@ router.post("/horarios", createHorario);
 router.put("/horarios/:id", updateHorario);
 router.delete("/horarios/:id", deleteHorario);
 router.delete("/horarios/salon/:salon", deleteHorariosPorSalon);
-router.post("/horarios/:salon/individuales", createHorariosPorSalon); // Para crear horarios individuales
-router.post("/horarios/:salon/completo", guardarHorariosSalonCompleto); // Para reemplazo completo
+router.post("/horarios/:salon/individuales", createHorariosPorSalon);
+router.post("/horarios/:salon/completo", guardarHorariosSalonCompleto);
 
 // Alertas  
 router.post("/alertas", crearAlerta);

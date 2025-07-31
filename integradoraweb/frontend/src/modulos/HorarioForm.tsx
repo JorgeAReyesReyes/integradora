@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Layout, Typography, Table, Card, Button, Tag, Space, message, Select, Modal } from 'antd';
-import { fetchHorarios, deleteHorariosPorSalon } from '../api/horarios';
 import axios from 'axios';
 
 const { Content } = Layout;
@@ -15,7 +14,15 @@ const timeSlots = Array.from({ length: 13 }, (_, i) => {
   const end = (hour + 1).toString().padStart(2, '0') + ':00';
   return `${start} - ${end}`;
 });
-const salones = Array.from({ length: 14 }, (_, i) => `C${i + 1}`);
+const salones = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13', 'C14', 'lab'];
+
+interface Horario {
+  _id?: string;
+  salon: string;
+  day: string;
+  inicioDate: string;
+  finDate: string;
+}
 
 const generarDatosIniciales = () => {
   const datos: Record<string, any[]> = {};
@@ -48,10 +55,10 @@ const HorarioForm: React.FC = () => {
 
   const cargarDatos = async () => {
     try {
-      const { data } = await fetchHorarios();
+      const { data } = await axios.get<Horario[]>('http://localhost:3001/api/horarios');
       const nuevosHorarios = generarDatosIniciales();
 
-      data.forEach((horario: any) => {
+      data.forEach((horario) => {
         const slot = `${formatearHora(horario.inicioDate)} - ${formatearHora(horario.finDate)}`;
         const fila = nuevosHorarios[horario.salon]?.find((f) => f.horario === slot);
         if (fila) {
@@ -70,7 +77,7 @@ const HorarioForm: React.FC = () => {
     setLoading(true);
 
     try {
-      const nuevosHorariosList: any[] = [];
+      const nuevosHorariosList: Omit<Horario, '_id'>[] = [];
 
       horarios[salonSeleccionado].forEach((fila) => {
         dayOptions.forEach((dia) => {
@@ -79,6 +86,7 @@ const HorarioForm: React.FC = () => {
             const fechaBase = new Date().toISOString().split('T')[0];
 
             nuevosHorariosList.push({
+              salon: salonSeleccionado,
               day: dia,
               inicioDate: new Date(`${fechaBase}T${inicio}:00`).toISOString(),
               finDate: new Date(`${fechaBase}T${fin}:00`).toISOString(),
@@ -86,8 +94,6 @@ const HorarioForm: React.FC = () => {
           }
         });
       });
-
-      console.log('Datos a guardar para salón', salonSeleccionado, nuevosHorariosList);
 
       await axios.post(
         `http://localhost:3001/api/horarios/${salonSeleccionado}/completo`,
@@ -128,7 +134,7 @@ const HorarioForm: React.FC = () => {
       onOk: async () => {
         setLoading(true);
         try {
-          await deleteHorariosPorSalon(salonSeleccionado);
+          await axios.delete(`http://localhost:3001/api/horarios/salon/${salonSeleccionado}`);
           message.success(`Horarios del salón ${salonSeleccionado} eliminados`);
 
           setHorarios((prev) => {
@@ -224,14 +230,7 @@ const HorarioForm: React.FC = () => {
           />
         </Card>
 
-        <Space
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            marginTop: 32,
-            gap: '1rem',
-          }}
-        >
+        <Space style={{ display: 'flex', justifyContent: 'center', marginTop: 32, gap: '1rem' }}>
           <Button
             type="primary"
             onClick={() => setModoEdicion(!modoEdicion)}

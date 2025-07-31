@@ -55,21 +55,23 @@ export const updateToken = (req: Request, res: Response) => {
 
 // ==== OBTENER TODOS LOS USUARIOS ====
 export const getAllUsers = async (_req: Request, res: Response) => {
-  const userList = await User.find()
-  return res.json({ userList });
+  try {
+    const userList = await User.find();
+    return res.json({ userList });
+  } catch (error) {
+    console.error("Error en getAllUsers:", error);
+    return res.status(500).json({ message: "Error al obtener usuarios" });
+  }
 };
-
 
 // ==== GUARDAR USUARIO NUEVO ====
 export const saveUser = async (req: Request, res: Response) => {
   try {
     const { name, userName, email, phone, password, roles } = req.body;
 
-    // Validación: no permitir email duplicado
     const existingEmail = await User.findOne({ email });
     if (existingEmail) return res.status(409).json({ message: "El correo ya está en uso" });
 
-    // Validación de contraseña segura
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
         message: "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número",
@@ -95,20 +97,31 @@ export const saveUser = async (req: Request, res: Response) => {
   }
 };
 
-//desabilitar usuario
-
-
-export const disableUser = async (req, res) => {
+// ==== DESHABILITAR USUARIO ====
+export const disableUser = async (req: Request, res: Response) => {
   const { userId } = req.params;
 
   try {
-    const user = await User.findByIdAndUpdate(userId, { status: false }, { new: true });
+    const user = await User.findByIdAndUpdate(
+      userId, 
+      { status: false }, 
+      { new: true }
+    );
+    
     if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
-    return res.status(200).json({ message: "Usuario deshabilitado correctamente", user });
+    
+    return res.status(200).json({ 
+      message: "Usuario deshabilitado correctamente", 
+      user 
+    });
   } catch (error) {
-    return res.status(500).json({ message: "Error al deshabilitar el usuario", error });
+    console.error("Error en disableUser:", error);
+    return res.status(500).json({ 
+      message: "Error al deshabilitar el usuario", 
+      error: error instanceof Error ? error.message : "Error desconocido" 
+    });
   }
 };
 
@@ -142,7 +155,10 @@ export const updateUser = async (req: Request, res: Response) => {
     return res.json({ updatedUser });
   } catch (error) {
     console.error("UPDATEUSER:", error);
-    return res.status(500).json({ message: "Error interno del servidor", error });
+    return res.status(500).json({ 
+      message: "Error interno del servidor", 
+      error: error instanceof Error ? error.message : "Error desconocido"
+    });
   }
 };
 
@@ -161,6 +177,22 @@ export const deleteUser = async (req: Request, res: Response) => {
     return res.json({ message: "Eliminación exitosa" });
   } catch (error) {
     console.error("DELETEUSER:", error);
-    return res.status(500).json({ message: "Error del servidor", error });
+    return res.status(500).json({ 
+      message: "Error del servidor", 
+      error: error instanceof Error ? error.message : "Error desconocido"
+    });
+  }
+};
+
+// ==== OBTENER TODOS LOS ROLES ====
+export const getAllRoles = async (_req: Request, res: Response) => {
+  try {
+    // Implementación para obtener roles
+    // Ejemplo: const roles = await Role.find();
+    // return res.json({ roles });
+    return res.json({ message: "Implementar lógica para obtener roles" });
+  } catch (error) {
+    console.error("Error en getAllRoles:", error);
+    return res.status(500).json({ message: "Error al obtener roles" });
   }
 };
