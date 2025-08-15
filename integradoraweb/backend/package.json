@@ -19,7 +19,7 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
-    "mongoose": "^8.16.0",
+    "mongoose": "^8.16.1",
     "node-cache": "^5.1.2",
     "node-cron": "^4.1.1",
     "socket.io": "^4.8.1"
