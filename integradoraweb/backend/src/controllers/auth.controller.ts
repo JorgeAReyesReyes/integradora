@@ -12,7 +12,7 @@ const passwordRegex = /^(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
-  if (email === "admin" && password === "1234") {
+  if (email === "Jorge1@gmail.com" && password === "Usuario1234") {
     const accessToken = generateAccessToken("admin");
     cache.set("admin", accessToken, 60 * 15);
     return res.json({ message: "Login exitoso como admin", accessToken });
